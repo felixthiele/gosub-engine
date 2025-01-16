@@ -26,29 +26,37 @@ jobs:
           toolchain: ${{ matrix.rust_version }}
       - name: Install dependencies
         run: sudo apt update -y && sudo apt install sqlite3 libsqlite3-dev libglib2.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libpango1.0-dev libgtk-4-dev -y
-      - name: Cache cargo
-        uses: actions/cache@v4
+
+      - name: Restore cargo cache
+        id: restore-cargo-cache
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cargo/
           key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-
-      - name: Cache cargo build
-        uses: actions/cache@v4
+      - name: Build cargo library
+        if: steps.restore-cargo-cache.outputs.cache-hit != 'true'
+        run: "cargo build --lib"
+      - name: Save cargo cache
+        if: steps.restore-cargo-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
         with:
-          path: ~/work/gosub-engine/gosub-engine/target
-          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-
+          path: ~/.cargo/
+          key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Build
-        run: cargo build --verbose --all --all-features
+        run: cargo build --verbose --bins --examples --tests --benches --workspace --all-features
       - name: Clean
         run: |
           cargo install cargo-sweep
           cargo sweep --installed
           cargo sweep --time 7
-
+      - name: Cache cargo build
+        uses: actions/cache/save@v4
+        with:
+          path: ~/work/gosub-engine/gosub-engine/target
+          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ github.sha }}
   test:
+    needs: [build]
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -63,23 +71,20 @@ jobs:
         with:
           toolchain: ${{ matrix.rust_version }}
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cargo
           key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-
       - name: Cache cargo build
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/work/gosub-engine/gosub-engine/target
-          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-
+          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ github.sha }}
       - name: Run tests
         run: cargo test --verbose --all --no-fail-fast --all-features --all-targets
 
   clippy:
+    needs: [build]
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -88,25 +93,21 @@ jobs:
         os: [ubuntu-24.04]
     steps:
       - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: sudo apt update -y && sudo apt install sqlite3 libsqlite3-dev libglib2.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libpango1.0-dev libgtk-4-dev -y
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust_version }}
-      - name: Install dependencies
-        run: sudo apt update -y && sudo apt install sqlite3 libsqlite3-dev libglib2.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libpango1.0-dev libgtk-4-dev -y
       - name: Cache cargo
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/.cargo
           key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-
       - name: Cache cargo build
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ~/work/gosub-engine/gosub-engine/target
-          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-
+          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ github.sha }}
       - name: Run Clippy
         run: cargo clippy --all --tests -- -D warnings
 
@@ -115,19 +116,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Cache cargo
-        uses: actions/cache@v4
-        with:
-          path: ~/.cargo
-          key: ${{ runner.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-registry-${{ matrix.rust_version }}-
-      - name: Cache cargo build
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/work/gosub-engine/gosub-engine/target
-          key: ${{ runner.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-cargo-target-${{ matrix.rust_version }}-
       - name: Run fmt
         run: cargo fmt --check --all
