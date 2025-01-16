@@ -2,9 +2,11 @@ name: Gosub Continuous Integration (CI)
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
@@ -15,10 +17,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust_version: [ stable, nightly, 1.73.0 ]
-        os: [ ubuntu-24.04 ]
-#        rust_version: [ stable, beta, nightly, 1.73.0, "stable minus 1 release", "stable minus 2 releases" ]
-#        os: [ ubuntu-24.04, windows-latest, macos-latest ]
+        rust_version: [stable, nightly, 1.73.0]
+        os: [ubuntu-24.04]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
@@ -53,10 +53,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust_version: [ stable, nightly, 1.73.0 ]
-        os: [ ubuntu-24.04 ]
-#        rust_version: [ stable, beta, nightly, 1.73.0, "stable minus 1 release", "stable minus 2 releases" ]
-#        os: [ ubuntu-24.04, windows-latest, macos-latest ]
+        rust_version: [stable, nightly, 1.73.0]
+        os: [ubuntu-24.04]
     steps:
       - uses: actions/checkout@v4
       - name: Install dependencies
@@ -86,10 +84,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust_version: [ stable, nightly ]
-        os: [ ubuntu-24.04 ]
-#        rust_version: [ stable, beta, nightly, 1.73.0, "stable minus 1 release", "stable minus 2 releases" ]
-#        os: [ ubuntu-24.04, windows-latest, macos-latest ]
+        rust_version: [stable, nightly]
+        os: [ubuntu-24.04]
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@master
