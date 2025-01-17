@@ -28,8 +28,11 @@ jobs:
         with:
           toolchain: ${{ matrix.rust_version }}
 
-      - name: Install System dependencies
-        run: sudo apt update -y && sudo apt install sqlite3 libsqlite3-dev libglib2.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libpango1.0-dev libgtk-4-dev -y
+      - name: Use System Dependency Cache
+        uses: awalsh128/cache-apt-pkgs-action@latest
+        with:
+          packages: sqlite3 libsqlite3-dev libglib2.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libpango1.0-dev libgtk-4-dev
+          version: 1.0
 
       - name: Check Formatting
         run: cargo fmt --check --all
@@ -38,25 +41,27 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/
-          key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}-${{ git.sha }}
           restore-keys: |
+            ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
             ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}
 
       - name: Use Build Cache
         uses: actions/cache@v4
         with:
           path: ~/work/gosub-engine/gosub-engine/target
-          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}-${{ git.sha }}
           restore-keys: |
-            ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}
+            ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
+            ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}
 
       - name: Build
         run: cargo build --workspace --all-targets --all-features --locked
 
-      - name: Run Tests
+      - name: Test
         run: cargo test --workspace --bins --tests --no-fail-fast --all-features --frozen
 
-      - name: Run Linter
+      - name: Lint
         run: cargo clippy --workspace --tests --frozen -- -Dwarnings
 
       - name: Clean
