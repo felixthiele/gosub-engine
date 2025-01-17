@@ -41,7 +41,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cargo/
-          key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}-${{ git.sha }}
+          key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
             ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
             ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}
@@ -50,7 +50,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/work/gosub-engine/gosub-engine/target
-          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}-${{ git.sha }}
+          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}-${{ github.sha }}
           restore-keys: |
             ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
             ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}
