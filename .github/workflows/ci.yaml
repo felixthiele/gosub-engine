@@ -33,6 +33,8 @@ jobs:
         with:
           path: ~/.cargo/
           key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
+      - name: Debug
+        run: tree ~/.cargo
       - name: Build
         run: cargo build --verbose --all --workspace --all-features --locked
       - name: Clean
@@ -41,7 +43,6 @@ jobs:
           cargo sweep --installed
           cargo sweep --time 7
       - name: Save cargo cache
-        if: steps.restore-cargo-cache.outputs.cache-hit != 'true'
         uses: actions/cache/save@v4
         with:
           path: ~/.cargo/
@@ -76,6 +77,8 @@ jobs:
         with:
           path: ~/work/gosub-engine/gosub-engine/target
           key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ github.sha }}
+      - name: Debug
+        run: tree ~/work/gosub-engine/
       - name: Run tests
         run: cargo test --verbose --all --no-fail-fast --all-features --all-targets --frozen
 
