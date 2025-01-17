@@ -12,7 +12,7 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  ci:
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -20,98 +20,47 @@ jobs:
         rust_version: [stable]
         os: [ubuntu-24.04]
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@master
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize Rust Tooling
+        uses: dtolnay/rust-toolchain@master
         with:
           toolchain: ${{ matrix.rust_version }}
-      - name: Install dependencies
+
+      - name: Install System dependencies
         run: sudo apt update -y && sudo apt install sqlite3 libsqlite3-dev libglib2.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libpango1.0-dev libgtk-4-dev -y
 
-      - name: Use cargo cache
+      - name: Check Formatting
+        run: cargo fmt --check --all
+
+      - name: Use Cargo Cache
         uses: actions/cache@v4
         with:
           path: ~/.cargo/
           key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}
-      - name: Use build cache
+
+      - name: Use Build Cache
         uses: actions/cache@v4
         with:
           path: ~/work/gosub-engine/gosub-engine/target
           key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}
+
       - name: Build
-        run: cargo build --workspace --bins --tests --all-features --locked
+        run: cargo build --workspace --all-targets --all-features --locked
+
+      - name: Run Tests
+        run: cargo test --workspace --bins --tests --no-fail-fast --all-features --frozen
+
+      - name: Run Linter
+        run: cargo clippy --workspace --tests --frozen -- -Dwarnings
+
       - name: Clean
         run: |
           cargo install cargo-sweep --locked
           cargo sweep --installed
           cargo sweep --time 7
-  test:
-    needs: [build]
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        rust_version: [stable]
-        os: [ubuntu-24.04]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt update -y && sudo apt install sqlite3 libsqlite3-dev libglib2.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libpango1.0-dev libgtk-4-dev -y
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.rust_version }}
-      - name: Restore cargo cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.cargo/
-          key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-      - name: Restore build cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/work/gosub-engine/gosub-engine/target
-          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}
-      - name: Run tests
-        run: cargo test --workspace --bins --tests --no-fail-fast --all-features --frozen
-
-  clippy:
-    needs: [build]
-    runs-on: ubuntu-24.04
-    strategy:
-      fail-fast: false
-      matrix:
-        rust_version: [stable]
-        os: [ubuntu-24.04]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install dependencies
-        run: sudo apt update -y && sudo apt install sqlite3 libsqlite3-dev libglib2.0-dev libcairo2-dev libgdk-pixbuf-2.0-dev libpango1.0-dev libgtk-4-dev -y
-      - uses: dtolnay/rust-toolchain@master
-        with:
-          toolchain: ${{ matrix.rust_version }}
-      - name: Restore cargo cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/.cargo/
-          key: ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-      - name: Restore build cache
-        uses: actions/cache/restore@v4
-        with:
-          path: ~/work/gosub-engine/gosub-engine/target
-          key: ${{ matrix.os }}-cargo-target-${{ matrix.rust_version }}-${{ hashFiles('**/Cargo.lock') }}
-          restore-keys: |
-            ${{ matrix.os }}-cargo-registry-${{ matrix.rust_version }}
-      - name: Run Clippy
-        run: cargo clippy --workspace --tests --frozen -- -Dwarnings
-
-  fmt:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-      - name: Run fmt
-        run: cargo fmt --check --all
